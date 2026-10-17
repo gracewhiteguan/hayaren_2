@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Hayaren 2">
+<meta name="theme-color" content="#C4704B">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23C4704B'/><text x='44' y='68' font-size='50' text-anchor='middle' fill='white' font-family='serif'>Հ</text><text x='76' y='80' font-size='26' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>2</text></svg>">
+<title>Hayaren 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Armenian:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAF7F2; --card-bg: #FFFFFF; --text: #2C2416; --muted: #8A7D6B;
+  --olive: #6B7C3A; --olive-light: #E8EDDA; --terracotta: #C4704B;
+  --red: #C0392B; --gold: #D4A84B; --border: #E5DFD4;
+  --font-display: 'Fraunces', serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-armenian: 'Noto Sans Armenian', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; min-height: 100dvh; }
+.shell { max-width: 520px; margin: 0 auto; padding: 0 16px 40px; padding-top: env(safe-area-inset-top); }
+header { text-align: center; padding: 28px 0 12px; }
+header h1 { font-family: var(--font-display); font-size: 26px; font-weight: 700; }
+header p { font-family: var(--font-body); font-size: 13px; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+.nav { display: flex; gap: 4px; margin-bottom: 20px; background: var(--card-bg); border-radius: 10px; padding: 4px; border: 1px solid var(--border); }
+.nav button { flex: 1; padding: 10px 0; border: none; border-radius: 8px; font-family: var(--font-body); font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; }
+.nav button.active { background: var(--olive); color: #fff; }
+.nav button:not(.active) { background: transparent; color: var(--muted); }
+.card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+.btn { border: none; border-radius: 6px; padding: 8px 16px; font-size: 14px; font-family: var(--font-body); cursor: pointer; font-weight: 600; transition: opacity .15s; white-space: nowrap; }
+.btn-olive { background: var(--olive); color: #fff; }
+.btn-terracotta { background: var(--terracotta); color: #fff; }
+.btn-gold { background: var(--gold); color: #fff; }
+.btn-red { background: var(--red); color: #fff; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-ghost-olive { background: transparent; border: 1px solid var(--border); color: var(--olive); }
+.btn-ghost-red { background: transparent; border: 1px solid var(--border); color: var(--red); }
+input, textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font-body); font-size: 14px; background: var(--card-bg); outline: none; color: var(--text); }
+.cat-btn { font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; font-family: var(--font-body); }
+.cat-btn.active { background: var(--olive); color: #fff; }
+.cat-btn:not(.active) { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+.reveal-box { background: var(--olive-light); border-radius: 8px; padding: 16px; margin-bottom: 16px; text-align: center; }
+.reveal-box.alpha { padding: 24px; }
+.tag { display: inline-block; margin-top: 8px; font-size: 11px; color: var(--terracotta); background: #FDF0E9; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.entry-card { display: flex; justify-content: space-between; align-items: flex-start; }
+.entry-actions { display: flex; gap: 4px; margin-left: 8px; flex-shrink: 0; }
+.score-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.quiz-prompt { font-size: 12px; color: var(--terracotta); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+.flex-row { display: flex; gap: 8px; }
+.flex-1 { flex: 1; }
+.hidden { display: none; }
+audio { height: 32px; max-width: 180px; }
+details summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--terracotta); padding: 8px 0; }
+</style>
+</head>
+<body>
+<div class="shell" id="app"></div>
+
+<script>
+// ─── Data ──────────────────────────────────────────────────────────
+// Separate storage keys from the original Hayeren deck so the two never collide.
+const DB_KEY = "hayaren2-quiz-data";
+const SEED_DATA = {
+  categories: ["Lesson 22"],
+  entries: [
+    {"id":"L22001","english":"Father (-ik = affectionate: dad)","armenian":"Հայր / Հայրիկ","pronunciation":"hayr / hayrik","category":"Lesson 22","audio":null},
+    {"id":"L22002","english":"Mother (-ik = affectionate: mom)","armenian":"Մայր / Մայրիկ","pronunciation":"mayr / mayrik","category":"Lesson 22","audio":null},
+    {"id":"L22003","english":"Sister","armenian":"Քույր / Քույրիկ","pronunciation":"quyr / quyrik","category":"Lesson 22","audio":null},
+    {"id":"L22004","english":"Brother","armenian":"Եղբայր","pronunciation":"yekhp'ayr","category":"Lesson 22","audio":null},
+    {"id":"L22005","english":"Cousin","armenian":"Զարմիկ","pronunciation":"zarmik","category":"Lesson 22","audio":null},
+    {"id":"L22006","english":"Grandfather","armenian":"Պապիկ","pronunciation":"p'ap'ik","category":"Lesson 22","audio":null},
+    {"id":"L22007","english":"Grandmother","armenian":"Տատիկ","pronunciation":"t'at'ik","category":"Lesson 22","audio":null},
+    {"id":"L22008","english":"Aunt (paternal — dad's sister)","armenian":"Հորաքույր","pronunciation":"horaquyr (hor = father's + quyr)","category":"Lesson 22","audio":null},
+    {"id":"L22009","english":"Aunt (maternal — mom's sister)","armenian":"Մորաքույր","pronunciation":"moraquyr (mor = mother's + quyr)","category":"Lesson 22","audio":null},
+    {"id":"L22010","english":"Uncle (maternal — mom's brother)","armenian":"Քեռի","pronunciation":"qer'i","category":"Lesson 22","audio":null},
+    {"id":"L22011","english":"Uncle (paternal — dad's brother)","armenian":"Հորեղբայր","pronunciation":"horekhp'ayr (hor + yekhp'ayr)","category":"Lesson 22","audio":null},
+    {"id":"L22012","english":"Relative","armenian":"Բարեկամ","pronunciation":"barekam","category":"Lesson 22","audio":null},
+    {"id":"L22013","english":"To trust","armenian":"Վստահել","pronunciation":"vəst'ahel → vəst'ahelu em (I will trust)","category":"Lesson 22","audio":null},
+    {"id":"L22014","english":"To get married","armenian":"Ամուսնանալ","pronunciation":"amusnanal → amusnanalu em (I will get married)","category":"Lesson 22","audio":null},
+    {"id":"L22015","english":"To get divorced","armenian":"Բաժանվել","pronunciation":"bazhanvel → bazhanvelu em (I will get divorced)","category":"Lesson 22","audio":null},
+    {"id":"L22016","english":"To move (to a place)","armenian":"Տեղափոխվել","pronunciation":"t'eghapokhvel → t'eghapokhvelu em (I will move)","category":"Lesson 22","audio":null},
+    {"id":"L22017","english":"To carry / to take","armenian":"Տանել","pronunciation":"t'anel → t'anelu em (I will take)","category":"Lesson 22","audio":null},
+    {"id":"L22018","english":"To write","armenian":"Գրել","pronunciation":"gərel → gərelu em (I will write)","category":"Lesson 22","audio":null},
+    {"id":"L22019","english":"To finish","armenian":"Ավարտել","pronunciation":"avart'el → avart'elu em (I will finish)","category":"Lesson 22","audio":null},
+    {"id":"L22020","english":"To return","armenian":"Վերադառնալ","pronunciation":"veradar'nal → veradar'nalu em (I will return)","category":"Lesson 22","audio":null},
+    {"id":"L22021","english":"To enter","armenian":"Մտնել","pronunciation":"mət'nel → mət'nelu em (I will enter)","category":"Lesson 22","audio":null},
+    {"id":"L22022","english":"To see","armenian":"Տեսնել","pronunciation":"t'esnel → t'esnelu em (I will see)","category":"Lesson 22","audio":null},
+    {"id":"L22023","english":"To remember","armenian":"Հիշել","pronunciation":"hishel → hishelu em (I will remember)","category":"Lesson 22","audio":null},
+    {"id":"L22024","english":"To start","armenian":"Սկսել","pronunciation":"skəsel → skəselu em (I will start)","category":"Lesson 22","audio":null},
+    {"id":"L22025","english":"To call (on the phone)","armenian":"Զանգել","pronunciation":"zangel → zangelu em (I will call)","category":"Lesson 22","audio":null},
+    {"id":"L22026","english":"To miss (someone)","armenian":"Կարոտել","pronunciation":"karot'el → karot'elu em (I will miss)","category":"Lesson 22","audio":null},
+    {"id":"L22027","english":"To change","armenian":"Փոխել","pronunciation":"pokhel → pokhelu em (I will change)","category":"Lesson 22","audio":null},
+    {"id":"L22028","english":"Rule: \"u\" future = infinitive + -ու + em/es/e/enq/eq/en","armenian":"Ես վստահելու եմ","pronunciation":"yes vəst'ahelu em = I will trust (same -u form as the purpose-of-going rule)","category":"Lesson 22","audio":null},
+    {"id":"L22029","english":"Then / after","armenian":"Հետո","pronunciation":"het'o","category":"Lesson 22","audio":null},
+    {"id":"L22030","english":"After one month","armenian":"Մեկ ամիս հետո","pronunciation":"mek amis het'o","category":"Lesson 22","audio":null},
+    {"id":"L22031","english":"Next","armenian":"Հաջորդ","pronunciation":"hajort","category":"Lesson 22","audio":null},
+    {"id":"L22032","english":"Next year","armenian":"Հաջորդ տարի","pronunciation":"hajort t'ari","category":"Lesson 22","audio":null},
+    {"id":"L22033","english":"Tomorrow","armenian":"Վաղը","pronunciation":"vaghə","category":"Lesson 22","audio":null},
+    {"id":"L22034","english":"In five minutes","armenian":"Հինգ րոպեից","pronunciation":"hing rop'eits","category":"Lesson 22","audio":null},
+    {"id":"L22035","english":"In half an hour","armenian":"Կես ժամից","pronunciation":"kes zhamits","category":"Lesson 22","audio":null},
+    {"id":"L22036","english":"The day after tomorrow","armenian":"Վաղը չէ մյուս օրը","pronunciation":"vaghə che myus orə","category":"Lesson 22","audio":null},
+    {"id":"L22037","english":"Me (object — not \"yes\")","armenian":"Ինձ","pronunciation":"indz","category":"Lesson 22","audio":null},
+    {"id":"L22038","english":"You (object, informal — not subject \"du\")","armenian":"Քեզ","pronunciation":"qez","category":"Lesson 22","audio":null},
+    {"id":"L22039","english":"Him / Her (object)","armenian":"Նրան","pronunciation":"nəran","category":"Lesson 22","audio":null},
+    {"id":"L22040","english":"Us (object)","armenian":"Մեզ","pronunciation":"mez","category":"Lesson 22","audio":null},
+    {"id":"L22041","english":"You (object, formal / plural)","armenian":"Ձեզ","pronunciation":"dzez","category":"Lesson 22","audio":null},
+    {"id":"L22042","english":"Them (object)","armenian":"Նրանց","pronunciation":"nərants","category":"Lesson 22","audio":null},
+    {"id":"L22043","english":"I love you","armenian":"Ես սիրում եմ քեզ","pronunciation":"yes sirumem qez","category":"Lesson 22","audio":null},
+    {"id":"L22044","english":"He/She gives me (use indz, not yes)","armenian":"Նա ինձ տալիս է","pronunciation":"na indz talis e","category":"Lesson 22","audio":null},
+    {"id":"L22045","english":"Place","armenian":"Տեղ","pronunciation":"t'egh","category":"Lesson 22","audio":null},
+    {"id":"L22046","english":"A call (phone call)","armenian":"Զանգ","pronunciation":"zang (zangel = to call)","category":"Lesson 22","audio":null}
+  ]
+};
+
+// ─── Storage (localStorage) ────────────────────────────────────────
+function loadData() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      // Merge any new seed entries
+      const ids = new Set(d.entries.map(e => e.id));
+      const added = SEED_DATA.entries.filter(e => !ids.has(e.id));
+      if (added.length) {
+        d.entries.push(...added);
+        d.categories = [...new Set([...SEED_DATA.categories, ...d.categories])];
+        localStorage.setItem(DB_KEY, JSON.stringify(d));
+      }
+      return d;
+    }
+  } catch(e) {}
+  localStorage.setItem(DB_KEY, JSON.stringify(SEED_DATA));
+  return JSON.parse(JSON.stringify(SEED_DATA));
+}
+function saveData(data) { localStorage.setItem(DB_KEY, JSON.stringify(data)); }
+function shuffle(a) { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// ─── Spaced Repetition ─────────────────────────────────────────────
+const REVIEWS_KEY = 'hayaren2-reviews';
+// Each review: { interval: days, due: ISO date string, streak: number }
+// Intervals: new→1→3→7→14→30→60→∞
+const INTERVALS = [1, 3, 7, 14, 30, 60, 120];
+
+function loadReviews() {
+  try { return JSON.parse(localStorage.getItem(REVIEWS_KEY) || '{}'); } catch { return {}; }
+}
+function saveReviews(r) { localStorage.setItem(REVIEWS_KEY, JSON.stringify(r)); }
+
+function isDue(review) {
+  if (!review) return true; // never seen = always due
+  return new Date(review.due) <= new Date();
+}
+
+function nextInterval(review, correct) {
+  if (!correct) return { interval: 1, streak: 0 }; // miss: back to 1 day
+  const streak = (review ? review.streak : 0) + 1;
+  const interval = INTERVALS[Math.min(streak, INTERVALS.length - 1)];
+  return { interval, streak };
+}
+
+function recordReview(cardId, correct) {
+  const reviews = loadReviews();
+  const existing = reviews[cardId];
+  const { interval, streak } = nextInterval(existing, correct);
+  const due = new Date();
+  due.setDate(due.getDate() + interval);
+  reviews[cardId] = { interval, streak, due: due.toISOString() };
+  saveReviews(reviews);
+}
+
+function getDueCount(entries) {
+  const reviews = loadReviews();
+  return entries.filter(e => isDue(reviews[e.id])).length;
+}
+
+// ─── App State ─────────────────────────────────────────────────────
+let data = loadData();
+let view = 'quiz';
+let editId = null;
+let quiz = { queue:[], current:null, revealed:false, score:{correct:0,total:0}, filterCat:'All', active:false };
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <header><h1>Հայերեն 2</h1><p>ARMENIAN PRACTICE</p></header>
+    <div class="nav">
+      <button class="${view==='quiz'?'active':''}" onclick="setView('quiz')">Quiz</button>
+      <button class="${view==='manage'?'active':''}" onclick="setView('manage')">Library</button>
+      <button class="${view==='add'?'active':''}" onclick="setView('add')">+ Add</button>
+    </div>
+    <div id="content"></div>
+  `;
+  if (view==='quiz') renderQuiz();
+  else if (view==='manage') renderManage();
+  else if (view==='add'||view==='edit') renderForm();
+}
+
+function setView(v) { view=v; editId=null; if(v==='quiz'){quiz.active=false;} render(); }
+
+// ─── Quiz ──────────────────────────────────────────────────────────
+function renderQuiz() {
+  const el = document.getElementById('content');
+  if (!data.entries.length) {
+    el.innerHTML = `<div class="card" style="text-align:center;padding:40px"><p style="font-size:32px;margin-bottom:12px">\u{1F4DD}</p><p style="color:var(--muted);font-size:15px;line-height:1.6">No entries yet. Add some phrases to start quizzing!</p></div>`;
+    return;
+  }
+  if (!quiz.active) {
+    const cats = ['All', ...new Set(data.entries.map(e=>e.category).filter(Boolean))];
+    const pool = quiz.filterCat==='All' ? data.entries : data.entries.filter(e=>e.category===quiz.filterCat);
+    const dueCount = getDueCount(pool);
+    const totalCount = pool.length;
+    el.innerHTML = `
+      <div class="card" style="text-align:center">
+        <p style="font-size:15px;margin-bottom:16px">Choose a category to quiz:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:20px">
+          ${cats.map(c=>`<button class="cat-btn ${c===quiz.filterCat?'active':''}" style="font-size:13px;padding:6px 14px;cursor:pointer" onclick="quiz.filterCat='${esc(c)}';renderQuiz()">${esc(c)}</button>`).join('')}
+        </div>
+        ${pool.length ? `<p style="font-size:13px;color:var(--terracotta);margin-bottom:16px;font-weight:600">${dueCount} card${dueCount!==1?'s':''} due &middot; ${totalCount - dueCount} not yet due</p>` : ''}
+        <button class="btn btn-terracotta" style="width:100%;padding:14px 0;font-size:16px" onclick="startQuiz()">Start Quiz</button>
+      </div>
+    `;
+    return;
+  }
+  if (!quiz.current) {
+    const pct = quiz.score.total ? Math.round(quiz.score.correct/quiz.score.total*100) : 0;
+    const pool = quiz.filterCat==='All' ? data.entries : data.entries.filter(e=>e.category===quiz.filterCat);
+    const dueCount = getDueCount(pool);
+    el.innerHTML = `
+      <div class="card" style="text-align:center">
+        <p style="font-size:40px;margin-bottom:8px">\u{1F389}</p>
+        <p style="font-family:var(--font-display);font-size:22px;font-weight:700;margin-bottom:8px">Session Complete!</p>
+        <p style="font-size:28px;color:var(--olive);font-weight:700">${quiz.score.correct} / ${quiz.score.total}</p>
+        <p style="color:var(--muted);font-size:14px;margin:4px 0 16px">${pct}% correct</p>
+        <p style="font-size:13px;color:var(--terracotta);margin-bottom:24px;font-weight:600">${dueCount} card${dueCount!==1?'s':''} still due</p>
+        <button class="btn btn-olive" style="width:100%;padding:12px 0" onclick="quiz.active=false;quiz.score={correct:0,total:0};renderQuiz()">New Session</button>
+      </div>
+    `;
+    return;
+  }
+  const c = quiz.current;
+  const isAlpha = c.category === 'Alphabet';
+  const isQA = c.category === 'Dialogue' && c.answerArmenian;
+
+  let front, revealHTML;
+  if (isQA) {
+    front = `
+      <p style="font-family:var(--font-armenian);font-size:24px;font-weight:700;text-align:center;margin:20px 0 8px;line-height:1.4">${esc(c.armenian)}</p>
+      ${c.pronunciation ? `<p style="font-size:14px;color:var(--muted);font-style:italic;text-align:center">${esc(c.pronunciation)}</p>` : ''}
+    `;
+    revealHTML = `
+      <div class="reveal-box">
+        <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--terracotta);margin-bottom:6px">Your response</p>
+        <p style="font-family:var(--font-armenian);font-size:17px;font-weight:600;margin-bottom:4px">${esc(c.answerArmenian)}</p>
+        ${c.answerPronunciation ? `<p style="font-size:14px;color:var(--muted);font-style:italic;margin-bottom:8px">${esc(c.answerPronunciation)}</p>` : ''}
+        <div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px">
+          <p style="font-size:12px;color:var(--muted)">${esc(c.english.replace(/^Q:\s*/,''))} &rarr; ${esc(c.answerEnglish||'')}</p>
+        </div>
+        ${c.audio ? `<div style="margin-top:10px"><button class="btn btn-olive" style="padding:6px 12px;font-size:13px" onclick="playAudio('${c.id}')">&#9654; Play</button><audio id="aud-${c.id}" src="${c.audio}"></audio></div>` : ''}
+      </div>
+    `;
+  } else if (isAlpha) {
+    front = `<p style="font-family:var(--font-armenian);font-size:64px;font-weight:700;text-align:center;margin:24px 0;letter-spacing:16px">${esc(c.armenian)}</p>`;
+    revealHTML = `
+      <div class="reveal-box alpha">
+        <p style="font-size:20px;font-weight:700;margin-bottom:6px">${esc(c.english)}</p>
+        ${c.pronunciation ? `<p style="font-size:14px;color:var(--muted);font-style:italic">${esc(c.pronunciation)}</p>` : ''}
+        ${c.audio ? `<div style="margin-top:10px"><button class="btn btn-olive" style="padding:6px 12px;font-size:13px" onclick="playAudio('${c.id}')">&#9654; Play</button><audio id="aud-${c.id}" src="${c.audio}"></audio></div>` : ''}
+      </div>
+    `;
+  } else {
+    front = `<p style="font-family:var(--font-body);font-size:22px;font-weight:700;text-align:center;margin:20px 0 8px;line-height:1.4">${esc(c.english)}</p>`;
+    revealHTML = `
+      <div class="reveal-box">
+        ${c.pronunciation ? `<p style="font-size:18px;font-weight:600;margin-bottom:8px">${esc(c.pronunciation)}</p>` : ''}
+        ${c.armenian ? `<p style="font-family:var(--font-armenian);font-size:15px;color:var(--muted)">${esc(c.armenian)}</p>` : ''}
+        ${c.audio ? `<div style="margin-top:10px"><button class="btn btn-olive" style="padding:6px 12px;font-size:13px" onclick="playAudio('${c.id}')">&#9654; Play</button><audio id="aud-${c.id}" src="${c.audio}"></audio></div>` : ''}
+      </div>
+    `;
+  }
+
+  const reviews = loadReviews();
+  const isDueCard = isDue(reviews[c.id]);
+  const num = quiz.score.total + 1;
+  const total = num + quiz.queue.length;
+
+  el.innerHTML = `
+    <div class="score-row">
+      <span style="font-size:13px;color:var(--muted)">${num} / ${total}</span>
+      <span style="font-size:13px;color:${isDueCard ? 'var(--terracotta)' : 'var(--muted)'};font-weight:600">${isDueCard ? 'Due' : 'Upcoming'} &middot; ${quiz.score.correct} correct</span>
+    </div>
+    <div class="card">
+      <p class="quiz-prompt">${isQA ? 'They ask you this — how do you respond?' : isAlpha ? 'What is this letter?' : 'How do you say this in Armenian?'}</p>
+      ${front}
+      ${!quiz.revealed ? `
+        <button class="btn btn-gold" style="width:100%;padding:14px 0;font-size:15px;margin-top:12px" onclick="quiz.revealed=true;renderQuiz()">Reveal Answer</button>
+      ` : `
+        <div style="margin-top:16px">
+          ${revealHTML}
+          <div class="flex-row">
+            <button class="btn btn-red flex-1" onclick="nextCard(false)">Missed it</button>
+            <button class="btn btn-olive flex-1" onclick="nextCard(true)">Got it \u2713</button>
+          </div>
+        </div>
+      `}
+    </div>
+    ${c.category ? `<p style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px">${esc(c.category)}</p>` : ''}
+  `;
+}
+
+function startQuiz() {
+  const pool = quiz.filterCat==='All' ? data.entries : data.entries.filter(e=>e.category===quiz.filterCat);
+  if (!pool.length) return;
+  const reviews = loadReviews();
+  const due = shuffle(pool.filter(e => isDue(reviews[e.id])));
+  const notDue = shuffle(pool.filter(e => !isDue(reviews[e.id])));
+  const ordered = [...due, ...notDue];
+  quiz.queue = ordered.slice(1);
+  quiz.current = ordered[0];
+  quiz.revealed = false;
+  quiz.score = {correct:0,total:0};
+  quiz.active = true;
+  renderQuiz();
+}
+function nextCard(correct) {
+  recordReview(quiz.current.id, correct);
+  quiz.score.correct += correct?1:0;
+  quiz.score.total += 1;
+  if (!quiz.queue.length) { quiz.current=null; quiz.active=true; renderQuiz(); return; }
+  quiz.current = quiz.queue.shift();
+  quiz.revealed = false;
+  renderQuiz();
+}
+function playAudio(id) { const a=document.getElementById('aud-'+id); if(a) a.play(); }
+
+// ─── Library / Manage ──────────────────────────────────────────────
+let manageFilter = 'All';
+let manageSearch = '';
+
+function renderManage() {
+  const el = document.getElementById('content');
+  const cats = ['All', ...new Set(data.entries.map(e=>e.category).filter(Boolean))];
+  const filtered = data.entries.filter(e => {
+    if (manageFilter!=='All' && e.category!==manageFilter) return false;
+    if (manageSearch) {
+      const s = manageSearch.toLowerCase();
+      return (e.english||'').toLowerCase().includes(s) || (e.armenian||'').toLowerCase().includes(s) || (e.pronunciation||'').toLowerCase().includes(s);
+    }
+    return true;
+  });
+  const alphaCount = data.entries.filter(e=>e.category==='Alphabet').length;
+  const vocabCount = data.entries.filter(e=>e.category!=='Alphabet').length;
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:13px;color:var(--muted)">${alphaCount ? alphaCount + ' alphabet cards, ' : ''}${vocabCount} vocab cards</span>
+    </div>
+    <input type="text" placeholder="Search entries\u2026" value="${esc(manageSearch)}" oninput="manageSearch=this.value;renderManage()" style="margin-bottom:10px">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px">
+      ${cats.map(c=>`<button class="cat-btn ${c===manageFilter?'active':''}" onclick="manageFilter='${esc(c)}';renderManage()">${esc(c)}</button>`).join('')}
+    </div>
+    ${filtered.length===0 ? `<p style="text-align:center;color:var(--muted);padding:20px">${data.entries.length===0?'No entries yet \u2014 add your first one!':'No matches found.'}</p>` : `
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${filtered.map(e => `
+          <div class="card" style="padding:16px">
+            <div class="entry-card">
+              <div style="flex:1;min-width:0">
+                <p style="font-weight:600;font-size:15px;margin-bottom:4px">${esc(e.english)}</p>
+                ${e.armenian ? `<p style="font-family:var(--font-armenian);font-size:16px;font-weight:600;color:var(--olive);margin-bottom:2px">${esc(e.armenian)}</p>` : ''}
+                ${e.pronunciation ? `<p style="font-size:13px;color:var(--muted);font-style:italic">${esc(e.pronunciation)}</p>` : ''}
+                ${e.answerArmenian ? `<p style="font-size:12px;color:var(--terracotta);margin-top:6px">&rarr; ${esc(e.answerArmenian)}${e.answerPronunciation ? ' ('+esc(e.answerPronunciation)+')' : ''}</p>` : ''}
+              </div>
+              <div class="entry-actions">
+                ${e.audio ? `<button class="btn btn-olive" style="padding:6px 12px;font-size:13px" onclick="playAudio('m${e.id}')">&#9654; Play</button><audio id="aud-m${e.id}" src="${e.audio}"></audio>` : ''}
+                <button class="btn btn-ghost-olive" style="padding:6px 10px;font-size:12px" onclick="startEdit('${e.id}')">Edit</button>
+                <button class="btn btn-ghost-red" style="padding:6px 10px;font-size:12px" onclick="deleteEntry('${e.id}')">&times;</button>
+              </div>
+            </div>
+            ${e.category ? `<span class="tag">${esc(e.category)}</span>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `}
+    <details style="margin-top:24px">
+      <summary>\u{1F4D6} Pronunciation &amp; Grammar Notes</summary>
+      <div class="card" style="margin-top:8px;padding:16px;font-size:13px;line-height:1.7">
+        <p style="margin-bottom:8px"><strong>kh</strong> = throaty "h" (like clearing your throat gently)</p>
+        <p style="margin-bottom:8px"><strong>k</strong> sounds a bit like <strong>g</strong></p>
+        <p style="margin-bottom:8px"><strong>\u0565</strong> (ech) = pronounced more like "ay"</p>
+        <p style="margin-bottom:8px"><strong>\u0568</strong> (y\u0259) = the "upside down e" = sounds like "uh"</p>
+        <p style="margin-bottom:8px"><strong>gh</strong> = similar to the French r (as in <em>rue</em>); if you can't produce it, a quick throaty h works</p>
+        <p style="margin-bottom:8px"><strong>Object pronouns</strong> (the person receiving the action): indz (me), qez (you), nəran (him/her), mez (us), dzez (you formal/plural), nərants (them) &mdash; e.g. yes sirumem qez = I love you; na indz talis e = he/she gives me</p>
+        <p style="margin-bottom:8px"><strong>"u" future</strong> = infinitive + -u + em/es/e/enq/eq/en &mdash; e.g. yes vəst'ahelu em = I will trust. Same -u form as the purpose-of-going rule (ut'elu = to eat)</p>
+        <p style="margin-bottom:8px"><strong>From</strong> = suffix -ից (its) — e.g. dep’rotsits (from school). Exception: from home = tnits</p>
+        <p style="margin-bottom:8px"><strong>At / in / on (the)</strong> = suffix -ում (um) — e.g. restoranum, hyuranotsum</p>
+        <p style="margin-bottom:8px"><strong>By (means of transport)</strong> = suffix -ով (ov) — e.g. taqsiov; if word ends in a vowel, add y first — meqena → meqenayov</p>
+        <p style="color:var(--muted);font-style:italic">Add your own notes here by editing this section after each lesson!</p>
+      </div>
+    </details>
+  `;
+}
+
+function deleteEntry(id) { data.entries = data.entries.filter(e=>e.id!==id); saveData(data); renderManage(); }
+function startEdit(id) { editId=id; view='edit'; render(); }
+
+// ─── Add / Edit Form ──────────────────────────────────────────────
+let formState = {};
+function initForm() {
+  const ex = editId ? data.entries.find(e=>e.id===editId) : null;
+  formState = {
+    english: ex?.english||'', armenian: ex?.armenian||'', pronunciation: ex?.pronunciation||'',
+    answerArmenian: ex?.answerArmenian||'', answerPronunciation: ex?.answerPronunciation||'', answerEnglish: ex?.answerEnglish||'',
+    category: ex?.category||'', audio: ex?.audio||null, bulkMode: false, bulkText: '',
+    newCat: '', showNewCat: false, recording: false, mediaRec: null, chunks: []
+  };
+}
+
+function renderForm() {
+  initForm();
+  const el = document.getElementById('content');
+  el.innerHTML = `<div class="card" id="form-card"></div>`;
+  renderFormInner();
+}
+
+function renderFormInner() {
+  const ex = editId ? data.entries.find(e=>e.id===editId) : null;
+  const fc = document.getElementById('form-card');
+  if (!fc) return;
+  fc.innerHTML = `
+    <h2 style="font-family:var(--font-display);font-size:20px;margin-bottom:20px">${ex?'Edit Entry':'Add Entries'}</h2>
+    ${!ex ? `
+      <div style="display:flex;gap:4px;margin-bottom:16px">
+        <button class="btn ${formState.bulkMode?'btn-ghost':'btn-olive'}" style="font-size:13px;padding:6px 14px" onclick="formState.bulkMode=false;renderFormInner()">Single</button>
+        <button class="btn ${formState.bulkMode?'btn-olive':'btn-ghost'}" style="font-size:13px;padding:6px 14px" onclick="formState.bulkMode=true;renderFormInner()">Bulk Paste</button>
+      </div>
+    ` : ''}
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Category</label>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+        ${data.categories.map(c=>`<button class="cat-btn ${c===formState.category?'active':''}" style="background:${c===formState.category?'var(--terracotta)':'transparent'};color:${c===formState.category?'#fff':'var(--text)'}" onclick="formState.category='${esc(c)}';renderFormInner()">${esc(c)}</button>`).join('')}
+        ${!formState.showNewCat ? `<button class="btn btn-ghost-olive" style="font-size:12px;padding:4px 10px" onclick="formState.showNewCat=true;renderFormInner()">+ New</button>` : `
+          <div style="display:flex;gap:4px;align-items:center">
+            <input id="new-cat-input" style="width:120px;padding:4px 8px;font-size:12px" placeholder="New category" value="${esc(formState.newCat)}">
+            <button class="btn btn-olive" style="font-size:12px;padding:4px 8px" onclick="addNewCat()">Add</button>
+          </div>
+        `}
+      </div>
+    </div>
+    ${formState.bulkMode && !ex ? `
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Paste entries (one per line)</label>
+        <p style="font-size:12px;color:var(--muted);margin:4px 0 8px">Format: English | Armenian script | pronunciation${formState.category === 'Dialogue' ? ' | response Armenian | response pronunciation | response English (last 3 optional — omit for a plain phrase card)' : ''}</p>
+        <textarea id="bulk-text" rows="8" style="resize:vertical" placeholder="Hello | \u0532\u0561\u0580\u0587 | barev">${esc(formState.bulkText)}</textarea>
+      </div>
+      <div class="flex-row">
+        <button class="btn btn-ghost flex-1" style="color:var(--muted)" onclick="setView('manage')">Cancel</button>
+        <button class="btn btn-olive flex-1" onclick="handleBulkAdd()">Add All</button>
+      </div>
+    ` : `
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">English *</label>
+        <input id="f-english" style="margin-top:6px" placeholder="Hello" value="${esc(formState.english)}">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Armenian Script</label>
+        <input id="f-armenian" style="margin-top:6px;font-family:var(--font-armenian)" placeholder="\u0532\u0561\u0580\u0587" value="${esc(formState.armenian)}">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Pronunciation</label>
+        <input id="f-pronunciation" style="margin-top:6px" placeholder="barev" value="${esc(formState.pronunciation)}">
+      </div>
+      ${formState.category === 'Dialogue' ? `
+      <div style="margin-bottom:14px;padding:12px;background:var(--olive-light);border-radius:8px">
+        <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--terracotta);margin-bottom:8px">Your response (leave blank for a plain phrase card)</p>
+        <label style="font-size:12px;font-weight:600;color:var(--muted)">Response — Armenian Script</label>
+        <input id="f-answer-armenian" style="margin-top:6px;margin-bottom:10px;font-family:var(--font-armenian)" value="${esc(formState.answerArmenian)}">
+        <label style="font-size:12px;font-weight:600;color:var(--muted)">Response — Pronunciation</label>
+        <input id="f-answer-pronunciation" style="margin-top:6px;margin-bottom:10px" value="${esc(formState.answerPronunciation)}">
+        <label style="font-size:12px;font-weight:600;color:var(--muted)">Response — English</label>
+        <input id="f-answer-english" style="margin-top:6px" value="${esc(formState.answerEnglish)}">
+      </div>
+      ` : ''}
+      <div style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Audio Pronunciation</label>
+        <div id="audio-controls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-olive" onclick="startRecording()" id="rec-btn"><span style="display:inline-block;width:8px;height:8px;background:#fff;border-radius:50%;margin-right:6px"></span>Record</button>
+          ${formState.audio ? `<audio controls src="${formState.audio}" style="height:32px;max-width:180px"></audio><button class="btn btn-ghost-red" style="font-size:12px;padding:2px 6px" onclick="formState.audio=null;renderFormInner()">Remove</button>` : ''}
+        </div>
+      </div>
+      <div class="flex-row">
+        <button class="btn btn-ghost flex-1" style="color:var(--muted)" onclick="setView('manage')">Cancel</button>
+        <button class="btn btn-olive flex-1" onclick="handleSubmit()">${ex?'Save Changes':'Add Entry'}</button>
+      </div>
+    `}
+  `;
+}
+
+function handleSubmit() {
+  const english = document.getElementById('f-english')?.value?.trim();
+  if (!english) return;
+  const entry = {
+    id: editId || Date.now().toString(),
+    english,
+    armenian: document.getElementById('f-armenian')?.value?.trim()||'',
+    pronunciation: document.getElementById('f-pronunciation')?.value?.trim()||'',
+    category: formState.category || 'Uncategorized',
+    audio: formState.audio
+  };
+  if (formState.category === 'Dialogue') {
+    entry.answerArmenian = document.getElementById('f-answer-armenian')?.value?.trim()||'';
+    entry.answerPronunciation = document.getElementById('f-answer-pronunciation')?.value?.trim()||'';
+    entry.answerEnglish = document.getElementById('f-answer-english')?.value?.trim()||'';
+  }
+  if (editId) { data.entries = data.entries.map(e=>e.id===editId?entry:e); }
+  else { data.entries.push(entry); }
+  saveData(data); setView('manage');
+}
+
+function handleBulkAdd() {
+  const text = document.getElementById('bulk-text')?.value||'';
+  const lines = text.trim().split('\n').filter(Boolean);
+  lines.forEach(line => {
+    const parts = line.split('|').map(s=>s.trim());
+    if (parts[0]) {
+      const entry = {
+        id: Date.now().toString() + Math.random().toString(36).slice(2,6),
+        english: parts[0], armenian: parts[1]||'', pronunciation: parts[2]||'',
+        category: formState.category||'Uncategorized', audio: null
+      };
+      if (formState.category === 'Dialogue' && (parts[3]||parts[4]||parts[5])) {
+        entry.answerArmenian = parts[3]||''; entry.answerPronunciation = parts[4]||''; entry.answerEnglish = parts[5]||'';
+      }
+      data.entries.push(entry);
+    }
+  });
+  saveData(data); setView('manage');
+}
+
+function addNewCat() {
+  const v = document.getElementById('new-cat-input')?.value?.trim();
+  if (v && !data.categories.includes(v)) {
+    data.categories.push(v);
+    formState.category = v;
+    formState.showNewCat = false;
+    saveData(data);
+    renderFormInner();
+  }
+}
+
+// ─── Audio Recording ───────────────────────────────────────────────
+function startRecording() {
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream => {
+    const mr = new MediaRecorder(stream);
+    const chunks = [];
+    mr.ondataavailable = e => chunks.push(e.data);
+    mr.onstop = () => {
+      const blob = new Blob(chunks, {type:'audio/webm'});
+      const reader = new FileReader();
+      reader.onloadend = () => { formState.audio = reader.result; stream.getTracks().forEach(t=>t.stop()); renderFormInner(); };
+      reader.readAsDataURL(blob);
+    };
+    mr.start();
+    const btn = document.getElementById('rec-btn');
+    if (btn) {
+      btn.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#fff;border-radius:2px;margin-right:6px"></span>Stop';
+      btn.className = 'btn btn-red';
+      btn.onclick = () => mr.stop();
+    }
+  }).catch(() => alert('Microphone access needed to record pronunciation.'));
+}
+
+// ─── Init ──────────────────────────────────────────────────────────
+render();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "Hayaren 2",
+  "short_name": "Hayaren 2",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#C4704B"
+}
