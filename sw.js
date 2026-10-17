@@ -1,5 +1,5 @@
 // Bump this version every time index.html changes to force a refresh.
-const CACHE = 'hayaren2-v1';
+const CACHE = 'hayaren2-v3';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
